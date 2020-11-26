@@ -6,100 +6,78 @@
  */
 
 #include <zephyr.h>
-
-#include <device.h>
-#include <drivers/pwm.h>
-#include <shell/shell.h>
 #include <usb/usb_device.h>
+#include <logging/log.h>
+#include <drivers/sensor.h>
 
-// Definitions for the PWM LED example
-#define PWM_LED0_NODE DT_ALIAS(pwm_led0)
+LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
-#if DT_NODE_HAS_STATUS(PWM_LED0_NODE, okay)
-#define PWM_LABEL   DT_PWMS_LABEL(PWM_LED0_NODE)
-#define PWM_CHANNEL DT_PWMS_CHANNEL(PWM_LED0_NODE)
-#define PWM_FLAGS   DT_PWMS_FLAGS(PWM_LED0_NODE)
-#else
-#error "Unsupported board: pwm-led0 devicetree alias is not defined"
-#define PWM_LABEL   ""
-#define PWM_CHANNEL 0
-#define PWM_FLAGS   0
-#endif
+K_SEM_DEFINE(sem_fxos8700_drdy, 0, 1);
 
-#define MIN_PERIOD_USEC (USEC_PER_SEC / 64U)
-#define MAX_PERIOD_USEC (USEC_PER_SEC / 4U)
-
-// Dummy shell command
-static int cmd_shell_test(const struct shell *shell, size_t argc, char **argv)
+static void fxos8700_trig_handler(const struct device *dev, struct sensor_trigger *trigger)
 {
-    ARG_UNUSED(argc);
-    ARG_UNUSED(argv);
+    ARG_UNUSED(trigger);
 
-    shell_print(shell, "shell command!");
+    if (0 != sensor_sample_fetch(dev)) {
+        // error
+        LOG_ERR("FXOS8700 sensor_sample_fetch() failed.");
+        return; // exit without giving semaphore
+    }
 
-    return 0;
+    k_sem_give(&sem_fxos8700_drdy);
 }
-SHELL_CMD_REGISTER(test, NULL, "Test command.", cmd_shell_test);
 
 void main(void)
 {
-    const struct device *pwm;
-    uint32_t max_period;
-    uint32_t period;
-    uint8_t dir = 0U;
-    int ret;
-
     // Enable USB for shell backend
     usb_enable(NULL);
 
-    // PWM LED example code
-    printk("PWM-based blinky\n");
+    LOG_INF("z_quad_rotor firmware running..");
 
-    pwm = device_get_binding(PWM_LABEL);
-    if (!pwm) {
-        printk("Error: didn't find %s device\n", PWM_LABEL);
+    struct sensor_value accel[3];
+    struct sensor_value mag[3];
+
+    const struct device *fxos8700 = device_get_binding(DT_LABEL(DT_INST(0, nxp_fxos8700)));
+    if (NULL == fxos8700) {
+        LOG_ERR("unable to bind FXOS8700 device.");
         return;
     }
 
-    /*
-     * In case the default MAX_PERIOD_USEC value cannot be set for
-     * some PWM hardware, decrease its value until it can.
-     *
-     * Keep its value at least MIN_PERIOD_USEC * 4 to make sure
-     * the sample changes frequency at least once.
-     */
-    printk("Calibrating for device %s channel %d...\n", PWM_LABEL, PWM_CHANNEL);
-    max_period = MAX_PERIOD_USEC;
-    while (pwm_pin_set_usec(pwm, PWM_CHANNEL, max_period, max_period / 2U, PWM_FLAGS)) {
-        max_period /= 2U;
-        if (max_period < (4U * MIN_PERIOD_USEC)) {
-            printk("Error: PWM device %s "
-                   "does not support a period at least %u\n",
-                   PWM_LABEL, 4U * MIN_PERIOD_USEC);
-            return;
-        }
+    struct sensor_value fxos8700_sample_rate = {
+		.val1 = 6,
+		.val2 = 250000,
+	};
+
+    if (0 != sensor_attr_set(fxos8700, SENSOR_CHAN_ALL, SENSOR_ATTR_SAMPLING_FREQUENCY, &fxos8700_sample_rate)) {
+        LOG_ERR("unable to set FXOS8700 sample rate.");
+        return;
     }
 
-    printk("Done calibrating; maximum/minimum periods %u/%u usec\n", max_period, MIN_PERIOD_USEC);
+    struct sensor_trigger fxos8700_trig = {
+        .type = SENSOR_TRIG_DATA_READY,
+        .chan = SENSOR_CHAN_ACCEL_XYZ,
+    };
 
-    period = max_period;
-    while (1) {
-        ret = pwm_pin_set_usec(pwm, PWM_CHANNEL, period, period / 2U, PWM_FLAGS);
-        if (ret) {
-            printk("Error %d: failed to set pulse width\n", ret);
-            return;
-        }
+    if (0 != sensor_trigger_set(fxos8700, &fxos8700_trig, fxos8700_trig_handler)) {
+        LOG_ERR("unable to set FXOS8700 trigger.");
+    }
 
-        period = dir ? (period * 2U) : (period / 2U);
-        if (period > max_period) {
-            period = max_period / 2U;
-            dir = 0U;
-        }
-        else if (period < MIN_PERIOD_USEC) {
-            period = MIN_PERIOD_USEC * 2U;
-            dir = 1U;
-        }
+    // log samples as they are ready
+    for (;;) {
+        // wait for trigger
+        k_sem_take(&sem_fxos8700_drdy, K_FOREVER);
 
-        k_sleep(K_SECONDS(1U));
+        sensor_channel_get(fxos8700, SENSOR_CHAN_ACCEL_XYZ, accel);
+        sensor_channel_get(fxos8700, SENSOR_CHAN_MAGN_XYZ, mag);
+
+        LOG_INF("AX:%3d.%06d AY:%3d.%06d AZ:%3d.%06d", 
+            accel[0].val1, accel[0].val2,
+            accel[1].val1, accel[1].val2,
+            accel[2].val1, accel[2].val2);
+
+        LOG_INF("MX:%3d.%06d MY:%3d.%06d MZ:%3d.%06d", 
+            mag[0].val1, mag[0].val2,
+            mag[1].val1, mag[1].val2,
+            mag[2].val1, mag[2].val2);
     }
 }

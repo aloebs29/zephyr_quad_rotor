@@ -5,7 +5,7 @@ find_package(Zephyr)
 
 project(z_quad_rotor)
 
-#set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Application sources
 target_sources(app PRIVATE src/main.c)

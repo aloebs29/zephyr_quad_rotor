@@ -1,18 +1,12 @@
-/ {
-    pwmleds {
-        compatible = "pwm-leds";
-        pwm_led0: pwm_led_0 {
-            pwms = < &pwm0 47 >;
-        };
-    };
-
-    aliases {
-        pwm-led0 = &pwm_led0;
-    };
-};
-
-&pwm0 {
+&i2c0 {
     status = "okay";
-    ch0-pin = < 47 >;
-    ch0-inverted;
+    compatible = "nordic,nrf-twi";
+
+    fxos8700@1f {
+        compatible = "nxp,fxos8700";
+        reg = < 0x1f >;
+        label = "FXOS8700";
+        int1-gpios = < &gpio1 8 GPIO_ACTIVE_LOW >;
+        int2-gpios = < &gpio0 7 GPIO_ACTIVE_LOW >;
+    };
 };
