@@ -8,4 +8,5 @@ project(z_quad_rotor)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Application sources
-target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/main.cpp)
+target_sources(app PRIVATE src/marg_sensor.cpp)
