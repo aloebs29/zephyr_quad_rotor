@@ -15,7 +15,7 @@ namespace z_quad_rotor {
 LOG_MODULE_REGISTER(marg_sensor, LOG_LEVEL_DBG);
 
 // constants
-static const struct sensor_value fxos8700_dr = {.val1 = 400, .val2 = 0};
+static const struct sensor_value fxos8700_dr = {.val1 = 200, .val2 = 0};
 // note -- fxas21002 data rate is set in kconfig
 
 // private funcions
@@ -27,11 +27,11 @@ int MargSensor::setup_fxos8700(sensor_trigger_handler_t trig_handler)
         LOG_ERR("Unable to set FXOS8700 sample rate; err: %d.", err);
     }
     else {
-        struct sensor_trigger fxos8700_trig = {
+        struct sensor_trigger trig = {
             .type = SENSOR_TRIG_DATA_READY,
             .chan = SENSOR_CHAN_ACCEL_XYZ,
         };
-        err = sensor_trigger_set(m_fxos8700, &fxos8700_trig, trig_handler);
+        err = sensor_trigger_set(m_fxos8700, &trig, trig_handler);
         if (err) {
             LOG_ERR("Unable to set FXOS8700 trigger; err: %d.", err);
         }
@@ -40,7 +40,19 @@ int MargSensor::setup_fxos8700(sensor_trigger_handler_t trig_handler)
     return err;
 }
 
-int MargSensor::setup_fxas21002(sensor_trigger_handler_t trig_handler) { return 0; }
+int MargSensor::setup_fxas21002(sensor_trigger_handler_t trig_handler)
+{
+    struct sensor_trigger trig = {
+        .type = SENSOR_TRIG_DATA_READY,
+        .chan = SENSOR_CHAN_GYRO_XYZ,
+    };
+    int err = sensor_trigger_set(m_fxas21002, &trig, trig_handler);
+    if (err) {
+        LOG_ERR("Unable to set FXAS21002 trigger; err: %d.", err);
+    }
+
+    return err;
+}
 
 // public functions
 int MargSensor::init(const char *fxos8700_dev_name, const char *fxas21002_dev_name,
@@ -56,12 +68,11 @@ int MargSensor::init(const char *fxos8700_dev_name, const char *fxas21002_dev_na
         err = ENXIO;
     }
     if (!err) {
-        // TODO: Add FXAS21002 support
-        // m_fxas21002 = device_get_binding(fxas21002_dev_name);
-        // if (!m_fxas21002) {
-        //     LOG_ERR("FXAS21002 binding failed.");
-        //     err = ENXIO;
-        // }
+        m_fxas21002 = device_get_binding(fxas21002_dev_name);
+        if (!m_fxas21002) {
+            LOG_ERR("FXAS21002 binding failed.");
+            err = ENXIO;
+        }
     }
 
     if (!err) {
@@ -96,7 +107,24 @@ void MargSensor::fxos8700_trig_handler(const struct device *dev, struct sensor_t
     }
 }
 
-void MargSensor::fxas21002_trig_handler(const struct device *dev, struct sensor_trigger *trigger) {}
+void MargSensor::fxas21002_trig_handler(const struct device *dev, struct sensor_trigger *trigger)
+{
+    ARG_UNUSED(trigger);
+
+    // fetch data
+    int err = sensor_sample_fetch(dev);
+    // store
+    k_mutex_lock(&m_data_mutex, K_FOREVER);
+    if (!err) {
+        err = sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ, m_data.gyro);
+    }
+    k_mutex_unlock(&m_data_mutex);
+
+    // log errors
+    if (err) {
+        LOG_ERR("FXAS21002 trigger handler err: %d.", err);
+    }
+}
 
 MargData MargSensor::get_data()
 {

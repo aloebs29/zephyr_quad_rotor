@@ -5,6 +5,7 @@
  *
  */
 
+#include <cstdlib>
 #include <device.h>
 #include <logging/log.h>
 #include <usb/usb_device.h>
@@ -28,8 +29,9 @@ void main(void)
     usb_enable(NULL);
 
     // setup orientation subsystem
-    int err = marg_sensor.init(DT_LABEL(DT_INST(0, nxp_fxos8700)), "TODO", fxos8700_trig_handler,
-                               fxas21002_trig_handler);
+    int err =
+        marg_sensor.init(DT_LABEL(DT_INST(0, nxp_fxos8700)), DT_LABEL(DT_INST(0, nxp_fxas21002)),
+                         fxos8700_trig_handler, fxas21002_trig_handler);
     if (err) {
         LOG_ERR("MARG sensor initialization error: %d", err);
     }
@@ -40,10 +42,16 @@ void main(void)
 
         MargData data = marg_sensor.get_data();
 
-        LOG_INF("AX:%3d.%06d AY:%3d.%06d AZ:%3d.%06d", data.accel[0].val1, data.accel[0].val2,
-                data.accel[1].val1, data.accel[1].val2, data.accel[2].val1, data.accel[2].val2);
+        LOG_INF("AX:%3d.%06d AY:%3d.%06d AZ:%3d.%06d", data.accel[0].val1, abs(data.accel[0].val2),
+                data.accel[1].val1, abs(data.accel[1].val2), data.accel[2].val1,
+                abs(data.accel[2].val2));
 
-        LOG_INF("MX:%3d.%06d MY:%3d.%06d MZ:%3d.%06d", data.magn[0].val1, data.magn[0].val2,
-                data.magn[1].val1, data.magn[1].val2, data.magn[2].val1, data.magn[2].val2);
+        LOG_INF("GX:%3d.%06d GY:%3d.%06d GZ:%3d.%06d", data.gyro[0].val1, abs(data.gyro[0].val2),
+                data.gyro[1].val1, abs(data.gyro[1].val2), data.gyro[2].val1,
+                abs(data.gyro[2].val2));
+
+        LOG_INF("MX:%3d.%06d MY:%3d.%06d MZ:%3d.%06d", data.magn[0].val1, abs(data.magn[0].val2),
+                data.magn[1].val1, abs(data.magn[1].val2), data.magn[2].val1,
+                abs(data.magn[2].val2));
     }
 }
