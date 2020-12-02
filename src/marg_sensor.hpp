@@ -68,8 +68,8 @@ class MargSensor {
     struct k_mutex m_data_mutex;
 
   private:
-    int setup_fxos8700(sensor_trigger_handler_t trig_handler);
-    int setup_fxas21002(sensor_trigger_handler_t trig_handler);
+    int setup_fxos8700(const char *dev_name, sensor_trigger_handler_t trig_handler);
+    int setup_fxas21002(const char *dev_name, sensor_trigger_handler_t trig_handler);
 };
 
 } // namespace z_quad_rotor
