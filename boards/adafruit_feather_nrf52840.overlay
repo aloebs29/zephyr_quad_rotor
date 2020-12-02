@@ -1,21 +1,30 @@
 &i2c0 {
     status = "okay";
     compatible = "nordic,nrf-twi";
-    clock-frequency = < I2C_BITRATE_FAST >;
+    clock-frequency = <I2C_BITRATE_FAST>;
 
     fxos8700@1f {
+        status = "okay";
         compatible = "nxp,fxos8700";
-        reg = < 0x1f >;
+        reg = <0x1f>;
         label = "FXOS8700";
-        int1-gpios = < &gpio1 8 GPIO_ACTIVE_LOW >; // D5
-        int2-gpios = < &gpio0 7 GPIO_ACTIVE_LOW >; // D6
+        int1-gpios = <&gpio1 8 GPIO_ACTIVE_LOW>; // D5
+        int2-gpios = <&gpio0 7 GPIO_ACTIVE_LOW>; // D6
     };
 
     fxas21002@21 {
+        status = "okay";
         compatible = "nxp,fxas21002";
-        reg = < 0x21 >;
+        reg = <0x21>;
         label = "FXAS21002";
-        int1-gpios = < &gpio0 4 GPIO_ACTIVE_LOW >; // A0
-        int2-gpios = < &gpio0 5 GPIO_ACTIVE_LOW >; // A1
+        int1-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>; // A0
+        int2-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>; // A1
+    };
+
+    dps310@77 {
+        status = "okay";
+        compatible = "infineon,dps310";
+        reg = <0x77>;
+        label = "DPS310";
     };
 };
