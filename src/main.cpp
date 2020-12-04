@@ -24,7 +24,7 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 static MargSensor marg_sensor;
 MARG_DEFINE_FXOS8700_TRIG_HANDLER(marg_sensor, fxos8700_trig_handler);
 MARG_DEFINE_FXAS21002_TRIG_HANDLER(marg_sensor, fxas21002_trig_handler);
-// Altitude sensor
+// Pressure sensor
 static PressureSensor pressure_sensor;
 static k_thread pressure_sensor_thread;
 K_THREAD_STACK_DEFINE(pressure_sensor_stack, PressureSensor::THREAD_STACK_SIZE);

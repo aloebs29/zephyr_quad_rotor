@@ -8,7 +8,6 @@
 #include "marg_sensor.hpp"
 
 #include <logging/log.h>
-#include <sys/util.h>
 
 namespace z_quad_rotor {
 
@@ -18,7 +17,7 @@ LOG_MODULE_REGISTER(marg_sensor, LOG_LEVEL_DBG);
 static const struct sensor_value fxos8700_dr = {.val1 = 200, .val2 = 0};
 // note -- fxas21002 data rate is set in kconfig
 
-// private funcions
+// private functions
 int MargSensor::setup_fxos8700(const char *dev_name, sensor_trigger_handler_t trig_handler)
 {
     int err = 0;

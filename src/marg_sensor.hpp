@@ -16,6 +16,8 @@
 #include <drivers/sensor.h>
 #include <zephyr.h>
 
+#include "linalg.h"
+
 namespace z_quad_rotor {
 
 /// Structure for 9DOF data
@@ -23,6 +25,21 @@ struct MargData {
     struct sensor_value accel[3];
     struct sensor_value gyro[3];
     struct sensor_value magn[3];
+};
+
+struct MargDataFloat {
+    linalg::vec<float, 3> accel;
+    linalg::vec<float, 3> gyro;
+    linalg::vec<float, 3> magn;
+    MargDataFloat(MargData &in)
+        : accel(sensor_value_to_double(&in.accel[0]), sensor_value_to_double(&in.accel[0]),
+                sensor_value_to_double(&in.accel[0])),
+          gyro(sensor_value_to_double(&in.gyro[0]), sensor_value_to_double(&in.gyro[0]),
+               sensor_value_to_double(&in.gyro[0])),
+          magn(sensor_value_to_double(&in.magn[0]), sensor_value_to_double(&in.magn[0]),
+               sensor_value_to_double(&in.magn[0]))
+    {
+    }
 };
 
 /// Macro for defining an fxos8700 trigger handler.
@@ -43,6 +60,7 @@ struct MargData {
 
 /// Handles setup and sampling of 9DOF sensors
 class MargSensor {
+
   public:
     /// Initializes the MARG sensor and begins sampling.
     /// @note Setup must be done after kernel initialization, necessitating an init function (rather
@@ -58,7 +76,7 @@ class MargSensor {
     void fxas21002_trig_handler(const struct device *dev, struct sensor_trigger *trigger);
     /// Returns the current MARG sensor data.
     /// @note Will block until MARG data mutex is available
-    MargData get_data();
+    MargData get_marg();
 
   protected:
     const struct device *m_fxos8700;
