@@ -74,8 +74,6 @@ int MargSensor::init(const char *fxos8700_dev_name, const char *fxas21002_dev_na
                      sensor_trigger_handler_t fxos8700_trig_handler,
                      sensor_trigger_handler_t fxas21002_trig_handler)
 {
-    k_mutex_init(&m_data_mutex);
-
     int err = setup_fxos8700(fxos8700_dev_name, fxos8700_trig_handler);
     if (!err) {
         err = setup_fxas21002(fxas21002_dev_name, fxas21002_trig_handler);
@@ -91,14 +89,13 @@ void MargSensor::fxos8700_trig_handler(const struct device *dev, struct sensor_t
     // fetch data
     int err = sensor_sample_fetch(dev);
     // store
-    k_mutex_lock(&m_data_mutex, K_FOREVER);
+    SyncedWriteAccess<MargData> write_access = m_marg_data.write_access();
     if (!err) {
-        err = sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, m_data.accel);
+        err = sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, write_access.get_ref().accel);
     }
     if (!err) {
-        err = sensor_channel_get(dev, SENSOR_CHAN_MAGN_XYZ, m_data.magn);
+        err = sensor_channel_get(dev, SENSOR_CHAN_MAGN_XYZ, write_access.get_ref().magn);
     }
-    k_mutex_unlock(&m_data_mutex);
 
     // log errors
     if (err) {
@@ -113,11 +110,10 @@ void MargSensor::fxas21002_trig_handler(const struct device *dev, struct sensor_
     // fetch data
     int err = sensor_sample_fetch(dev);
     // store
-    k_mutex_lock(&m_data_mutex, K_FOREVER);
+    SyncedWriteAccess<MargData> write_access = m_marg_data.write_access();
     if (!err) {
-        err = sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ, m_data.gyro);
+        err = sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ, write_access.get_ref().gyro);
     }
-    k_mutex_unlock(&m_data_mutex);
 
     // log errors
     if (err) {
@@ -125,14 +121,6 @@ void MargSensor::fxas21002_trig_handler(const struct device *dev, struct sensor_
     }
 }
 
-MargData MargSensor::get_marg()
-{
-    // guarantee copy happens without data being updated
-    k_mutex_lock(&m_data_mutex, K_FOREVER);
-    MargData ret = m_data;
-    k_mutex_unlock(&m_data_mutex);
-
-    return ret;
-}
+MargData MargSensor::get_marg() { return m_marg_data.read_access().get_var(); }
 
 } // namespace z_quad_rotor

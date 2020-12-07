@@ -20,6 +20,7 @@
 #include "fusion.hpp"
 #include "marg_sensor.hpp"
 #include "orientation_defs.hpp"
+#include "synced_var.h"
 
 namespace z_quad_rotor {
 
@@ -32,9 +33,8 @@ class Orientation {
     /// @param remap_matrix Matrix for remapping raw sensor values to right-hand coordinate system
     /// (e.g. [-1, 0, 0, 0, 0, 1, 0, 1, 0])
     Orientation(const RotationMatrix &remap_matrix)
-        : m_quat(0.0f, 0.0f, 0.0f, 1.0f), m_fusion_impl(), m_remap_matrix(remap_matrix)
+        : m_quat(Quaternion(0.0f, 0.0f, 0.0f, 1.0f)), m_fusion_impl(), m_remap_matrix(remap_matrix)
     {
-        k_mutex_init(&m_quat_mutex);
     }
     /// Updates orientation based on new raw sensor values
     void update(MargData &marg_data, uint32_t time_diff_ms)
@@ -43,37 +43,17 @@ class Orientation {
         // We should not need to scale the gyro measurements (zephyr claims gyro outputs should be
         // rad/s), so this is a "temporary" fix.
         remapped.gyro *= DEG_TO_RAD;
-        // don't update while another thread is reading
-        k_mutex_lock(&m_quat_mutex, K_FOREVER);
-        m_fusion_impl.update(remapped, m_quat, time_diff_ms);
-        k_mutex_unlock(&m_quat_mutex);
+        m_fusion_impl.update(remapped, m_quat.write_access().get_ref(), time_diff_ms);
     }
     /// Returns the current orientation in quaternion representation.
     /// @note Will block until quat mutex is available (locked by update)
-    Quaternion get_quaternion()
-    {
-        // guarantee copy happens without data being updated
-        k_mutex_lock(&m_quat_mutex, K_FOREVER);
-        Quaternion ret = m_quat;
-        k_mutex_unlock(&m_quat_mutex);
-
-        return ret;
-    }
+    Quaternion get_quaternion() { return m_quat.read_access().get_var(); }
     /// Returns the current orientation in euler angle representation (degrees).
     /// @note Will block until quat mutex is available (locked by update)
-    EulerAngle get_euler_angle()
-    {
-        // guarantee copy happens without data being updated
-        k_mutex_lock(&m_quat_mutex, K_FOREVER);
-        EulerAngle ret = quat_to_euler(m_quat);
-        k_mutex_unlock(&m_quat_mutex);
-
-        return ret;
-    }
+    EulerAngle get_euler_angle() { return quat_to_euler(m_quat.read_access().get_var()); }
 
   protected:
-    Quaternion m_quat;
-    struct k_mutex m_quat_mutex;
+    SyncedVar<Quaternion> m_quat;
 
   private:
     const FusionImpl<T> m_fusion_impl;

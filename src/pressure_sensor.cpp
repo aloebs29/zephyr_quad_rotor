@@ -73,22 +73,17 @@ void PressureSensor::entry_func(void *p1, void *p2, void *p3)
         // performing serial transactions
         int err = sensor_sample_fetch(m_dev);
         // store
-        k_mutex_lock(&m_pressure_mutex, K_FOREVER);
         if (!err) {
-            err = sensor_channel_get(m_dev, SENSOR_CHAN_PRESS, &m_pressure);
+            SyncedWriteAccess<struct sensor_value> write_access = m_pressure.write_access();
+            err = sensor_channel_get(m_dev, SENSOR_CHAN_PRESS, &write_access.get_ref());
         }
-        k_mutex_unlock(&m_pressure_mutex);
+
+        if (err) {
+            LOG_ERR("Error reading pressure sensor: %d", err);
+        }
     }
 }
 
-struct sensor_value PressureSensor::get_pressure()
-{
-    // guarantee copy happens without data being updated
-    k_mutex_lock(&m_pressure_mutex, K_FOREVER);
-    struct sensor_value ret = m_pressure;
-    k_mutex_unlock(&m_pressure_mutex);
-
-    return ret;
-}
+struct sensor_value PressureSensor::get_pressure() { return m_pressure.read_access().get_var(); }
 
 } // namespace z_quad_rotor

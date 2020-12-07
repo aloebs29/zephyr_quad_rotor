@@ -16,6 +16,8 @@
 #include <drivers/sensor.h>
 #include <zephyr.h>
 
+#include "synced_var.h"
+
 namespace z_quad_rotor {
 
 /// Macro for defining an pressure sensor thread entry function
@@ -44,8 +46,7 @@ class PressureSensor {
     const struct device *m_dev;
     k_tid_t m_tid;
 
-    struct sensor_value m_pressure;
-    struct k_mutex m_pressure_mutex;
+    SyncedVar<struct sensor_value> m_pressure;
 
   private:
     int setup_pressure_sensor(const char *dev_name);

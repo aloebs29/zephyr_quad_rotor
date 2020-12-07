@@ -18,6 +18,8 @@
 
 #include "linalg.h"
 
+#include "synced_var.h"
+
 namespace z_quad_rotor {
 
 /// Structure for 9DOF data
@@ -82,8 +84,7 @@ class MargSensor {
     const struct device *m_fxos8700;
     const struct device *m_fxas21002;
 
-    MargData m_data;
-    struct k_mutex m_data_mutex;
+    SyncedVar<MargData> m_marg_data;
 
   private:
     int setup_fxos8700(const char *dev_name, sensor_trigger_handler_t trig_handler);
