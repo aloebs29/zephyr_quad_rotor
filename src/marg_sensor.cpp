@@ -125,7 +125,7 @@ void MargSensor::fxas21002_trig_handler(const struct device *dev, struct sensor_
     }
 }
 
-MargData MargSensor::get_data()
+MargData MargSensor::get_marg()
 {
     // guarantee copy happens without data being updated
     k_mutex_lock(&m_data_mutex, K_FOREVER);

@@ -32,12 +32,12 @@ struct MargDataFloat {
     linalg::vec<float, 3> gyro;
     linalg::vec<float, 3> magn;
     MargDataFloat(MargData &in)
-        : accel(sensor_value_to_double(&in.accel[0]), sensor_value_to_double(&in.accel[0]),
-                sensor_value_to_double(&in.accel[0])),
-          gyro(sensor_value_to_double(&in.gyro[0]), sensor_value_to_double(&in.gyro[0]),
-               sensor_value_to_double(&in.gyro[0])),
-          magn(sensor_value_to_double(&in.magn[0]), sensor_value_to_double(&in.magn[0]),
-               sensor_value_to_double(&in.magn[0]))
+        : accel(sensor_value_to_double(&in.accel[0]), sensor_value_to_double(&in.accel[1]),
+                sensor_value_to_double(&in.accel[2])),
+          gyro(sensor_value_to_double(&in.gyro[0]), sensor_value_to_double(&in.gyro[1]),
+               sensor_value_to_double(&in.gyro[2])),
+          magn(sensor_value_to_double(&in.magn[0]), sensor_value_to_double(&in.magn[1]),
+               sensor_value_to_double(&in.magn[2]))
     {
     }
 };

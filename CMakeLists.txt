@@ -11,7 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include_directories(app PRIVATE lib/linalg)
 
 # Application sources
+target_sources(app PRIVATE src/fusion.cpp)
 target_sources(app PRIVATE src/main.cpp)
 target_sources(app PRIVATE src/marg_sensor.cpp)
-target_sources(app PRIVATE src/orientation.cpp)
 target_sources(app PRIVATE src/pressure_sensor.cpp)

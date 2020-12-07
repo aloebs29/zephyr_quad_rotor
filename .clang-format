@@ -4,5 +4,6 @@ BreakBeforeBraces: Stroustrup
 AllowShortIfStatementsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: true
 AlignConsecutiveMacros: true
+AlwaysBreakTemplateDeclarations: true
 IndentCaseLabels: true
 ColumnLimit: 100

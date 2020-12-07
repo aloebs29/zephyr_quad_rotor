@@ -1,7 +1,7 @@
 /**
  * @file		orientation.hpp
  * @author		Andrew Loebs
- * @brief		Header file of the orientation module
+ * @brief		Header-only orientation module
  *
  * Derives orientation from raw MARG sensor values using selected sensor fusion algorithm.
  *
@@ -16,45 +16,94 @@
 #include <zephyr.h>
 
 #include "linalg.h"
+
+#include "fusion.hpp"
 #include "marg_sensor.hpp"
+#include "orientation_defs.hpp"
 
 namespace z_quad_rotor {
 
-using Quaternion = linalg::vec<float, 4>;
-using EulerAngle = linalg::vec<float, 3>;
-using RotationMatrix = linalg::mat<float, 3, 3>;
-
-constexpr float PI = 3.1415926535f;
-constexpr float PI_OVER_2 = PI / 2.0f;
-
-/// Stores orientation in 3D space; updated with raw sensor inputs
+/// Stores orientation in 3D space; updates based on raw MARG inputs
+/// @tparam Fusion implementation to be used for updates
+template <class T>
 class Orientation {
   public:
-    /// Enum for selecting the fusion algorithm used by the orientation object
-    enum FusionType {
-        FUSION_TYPE_MAGWICK_9,
-    };
     /// Constructor
-    /// @param fusion_type Fusion algorithm to be used for orientation updates.
     /// @param remap_matrix Matrix for remapping raw sensor values to right-hand coordinate system
     /// (e.g. [-1, 0, 0, 0, 0, 1, 0, 1, 0])
-    Orientation(FusionType fusion_type, const RotationMatrix remap_matrix);
+    Orientation(const RotationMatrix &remap_matrix)
+        : m_quat(0.0f, 0.0f, 0.0f, 1.0f), m_fusion_impl(), m_remap_matrix(remap_matrix)
+    {
+        k_mutex_init(&m_quat_mutex);
+    }
     /// Updates orientation based on new raw sensor values
-    void update(MargData &marg_data, uint32_t time_diff_ms);
+    void update(MargData &marg_data, uint32_t time_diff_ms)
+    {
+        MargDataFloat remapped = remap_marg_data(marg_data, m_remap_matrix);
+        // We should not need to scale the gyro measurements (zephyr claims gyro outputs should be
+        // rad/s), so this is a "temporary" fix.
+        remapped.gyro *= DEG_TO_RAD;
+        // don't update while another thread is reading
+        k_mutex_lock(&m_quat_mutex, K_FOREVER);
+        m_fusion_impl.update(remapped, m_quat, time_diff_ms);
+        k_mutex_unlock(&m_quat_mutex);
+    }
     /// Returns the current orientation in quaternion representation.
     /// @note Will block until quat mutex is available (locked by update)
-    Quaternion get_quaternion();
-    /// Returns the current orientation in euler angle representation.
+    Quaternion get_quaternion()
+    {
+        // guarantee copy happens without data being updated
+        k_mutex_lock(&m_quat_mutex, K_FOREVER);
+        Quaternion ret = m_quat;
+        k_mutex_unlock(&m_quat_mutex);
+
+        return ret;
+    }
+    /// Returns the current orientation in euler angle representation (degrees).
     /// @note Will block until quat mutex is available (locked by update)
-    EulerAngle get_euler_angle();
+    EulerAngle get_euler_angle()
+    {
+        // guarantee copy happens without data being updated
+        k_mutex_lock(&m_quat_mutex, K_FOREVER);
+        EulerAngle ret = quat_to_euler(m_quat);
+        k_mutex_unlock(&m_quat_mutex);
+
+        return ret;
+    }
 
   protected:
     Quaternion m_quat;
     struct k_mutex m_quat_mutex;
 
   private:
-    const FusionType m_fusion_type;
+    const FusionImpl<T> m_fusion_impl;
     const RotationMatrix m_remap_matrix;
+    /// converts marg data from sensor value to float, remaps according to remap matrix
+    static const MargDataFloat remap_marg_data(MargData &marg_data,
+                                               const RotationMatrix &remap_matrix)
+    {
+        MargDataFloat remapped(marg_data);
+        remapped.accel = linalg::mul(remap_matrix, remapped.accel);
+        remapped.gyro = linalg::mul(remap_matrix, remapped.gyro);
+        remapped.magn = linalg::mul(remap_matrix, remapped.magn);
+
+        return remapped;
+    }
+    /// converts quaternion orientation to euler angles
+    static EulerAngle quat_to_euler(const Quaternion &quat)
+    {
+        float roll = atan2f(2 * (quat.w * quat.x + quat.y * quat.z),
+                            1 - 2 * (quat.x * quat.x + quat.y * quat.y));
+        // limit pitch to +/- 90
+        float sin_pitch = 2 * (quat.w * quat.y - quat.z * quat.x);
+        float pitch = copysign(PI_OVER_2, sin_pitch);
+        if (abs(sin_pitch) < 1) pitch = asinf(sin_pitch);
+
+        float yaw = atan2f(2 * (quat.w * quat.z + quat.x * quat.y),
+                           1 - 2 * (quat.y * quat.y + quat.z * quat.z));
+
+        return EulerAngle(roll, pitch, yaw);
+    }
 };
 
 } // namespace z_quad_rotor
