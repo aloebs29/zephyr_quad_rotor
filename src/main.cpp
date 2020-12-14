@@ -14,6 +14,8 @@
 #include <zephyr.h>
 
 #include "altitude.hpp"
+#include "fxas21002.hpp"
+#include "fxos8700.hpp"
 #include "marg_sensor.hpp"
 #include "orientation.hpp"
 #include "pressure_sensor.hpp"
@@ -24,20 +26,22 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 // MARG sensor
 static MargSensor marg_sensor;
-MARG_DEFINE_FXOS8700_TRIG_HANDLER(marg_sensor, fxos8700_trig_handler);
-MARG_DEFINE_FXAS21002_TRIG_HANDLER(marg_sensor, fxas21002_trig_handler);
+
 // Pressure sensor
 static PressureSensor pressure_sensor;
 static k_thread pressure_sensor_thread;
 K_THREAD_STACK_DEFINE(pressure_sensor_stack, PressureSensor::THREAD_STACK_SIZE);
 PRESSURE_DEFINE_THREAD_ENTRY_FUNC(pressure_sensor, pressure_entry_func);
+
 // Orientation filter
 static const RotationMatrix remap({1.0f, 0.0f, 0.0f}, // Identity matrix (TODO: create actual remap)
                                   {0.0f, 1.0f, 0.0f}, // -
                                   {0.0f, 0.0f, 1.0f});
 static Orientation<MadgwickFusion6> orientation(remap);
+
 // Altitude filter
 static Altitude altitude;
+
 // TODO: delete -- for testing
 // timer to initiate orientation updates
 K_TIMER_DEFINE(orientation_update_timer, NULL, NULL);
@@ -54,20 +58,15 @@ void main(void)
     // enable USB for shell backend
     usb_enable(NULL);
 
-    // setup position & orientation subsystem
-    int err =
-        marg_sensor.init(DT_LABEL(DT_INST(0, nxp_fxos8700)), DT_LABEL(DT_INST(0, nxp_fxas21002)),
-                         fxos8700_trig_handler, fxas21002_trig_handler);
-    if (err) {
-        LOG_ERR("MARG sensor initialization error: %d", err);
+    // setup sensors
+    int err = fxos8700::setup(DT_LABEL(DT_INST(0, nxp_fxos8700)), &marg_sensor);
+    if (!err) {
+        err = fxas21002::setup(DT_LABEL(DT_INST(0, nxp_fxas21002)), &marg_sensor);
     }
-    else {
-        pressure_sensor.init(DT_LABEL(DT_INST(0, infineon_dps310)), pressure_entry_func,
-                             &pressure_sensor_thread, pressure_sensor_stack,
-                             K_THREAD_STACK_SIZEOF(pressure_sensor_stack), 10);
-    }
-    if (err) {
-        LOG_ERR("Altitude sensor initialization error: %d", err);
+    if (!err) {
+        err = pressure_sensor.init(DT_LABEL(DT_INST(0, infineon_dps310)), pressure_entry_func,
+                                   &pressure_sensor_thread, pressure_sensor_stack,
+                                   K_THREAD_STACK_SIZEOF(pressure_sensor_stack), 10);
     }
 
     uint32_t count = 0;

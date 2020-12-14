@@ -1,9 +1,9 @@
 /**
  * @file		marg_sensor.hpp
  * @author		Andrew Loebs
- * @brief		Header file of the MARG sensor module
+ * @brief		Header-only MARG sensor module
  *
- * Manages sampling of accelerometer, gyroscope, and magnetometer sensor data.
+ * Defines MARG data types, sensor class for handling read/write access to MARG data.
  *
  *
  */
@@ -11,10 +11,7 @@
 #ifndef __MARG_SENSOR_H
 #define __MARG_SENSOR_H
 
-#include <cstdint>
-#include <device.h>
 #include <drivers/sensor.h>
-#include <zephyr.h>
 
 #include "linalg.h"
 
@@ -44,51 +41,17 @@ struct MargDataFloat {
     }
 };
 
-/// Macro for defining an fxos8700 trigger handler.
-/// @note This must be defined at compile time.
-#define MARG_DEFINE_FXOS8700_TRIG_HANDLER(marg_sensor, handler_name)                               \
-    void handler_name(const struct device *d, struct sensor_trigger *t)                            \
-    {                                                                                              \
-        marg_sensor.fxos8700_trig_handler(d, t);                                                   \
-    }
-
-/// Macro for defining an fxas21002 trigger handler.
-/// @note This must be defined at compile time.
-#define MARG_DEFINE_FXAS21002_TRIG_HANDLER(marg_sensor, handler_name)                              \
-    void handler_name(const struct device *d, struct sensor_trigger *t)                            \
-    {                                                                                              \
-        marg_sensor.fxas21002_trig_handler(d, t);                                                  \
-    }
-
-/// Handles setup and sampling of 9DOF sensors
+/// Manages read/write access to MARG sensor data
 class MargSensor {
-
   public:
-    /// Initializes the MARG sensor and begins sampling.
-    /// @note Setup must be done after kernel initialization, necessitating an init function (rather
-    /// than doing this in constructor)
-    int init(const char *fxos8700_dev_name, const char *fxas21002_dev_name,
-             sensor_trigger_handler_t fxos8700_trig_handler,
-             sensor_trigger_handler_t fxas21002_trig_handler);
-    /// @note This must be public to allow binding of static handler function to member function,
-    /// however, this function should not be called directly.
-    void fxos8700_trig_handler(const struct device *dev, struct sensor_trigger *trigger);
-    /// @note This must be public to allow binding of static handler function to member function,
-    /// however, this function should not be called directly.
-    void fxas21002_trig_handler(const struct device *dev, struct sensor_trigger *trigger);
     /// Returns the current MARG sensor data.
-    /// @note Will block until MARG data mutex is available
-    MargData get_marg();
+    /// @note Will block until data lock is available
+    MargData get_marg() { return m_marg_data.get_read_lock().get_var(); }
+    /// Returns a write lock to the MARG sensor data
+    WriteLock<MargData> get_write_lock() { return m_marg_data.get_write_lock(); }
 
   protected:
-    const struct device *m_fxos8700;
-    const struct device *m_fxas21002;
-
     SyncedVar<MargData> m_marg_data;
-
-  private:
-    int setup_fxos8700(const char *dev_name, sensor_trigger_handler_t trig_handler);
-    int setup_fxas21002(const char *dev_name, sensor_trigger_handler_t trig_handler);
 };
 
 } // namespace z_quad_rotor

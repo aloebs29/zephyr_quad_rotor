@@ -13,13 +13,13 @@
 namespace z_quad_rotor {
 
 template <class T>
-class SyncedWriteAccess {
+class WriteLock {
   public:
-    SyncedWriteAccess(T &var, k_mutex &mutex) : m_var(var), m_mutex(mutex)
+    WriteLock(T &var, k_mutex &mutex) : m_var(var), m_mutex(mutex)
     {
         k_mutex_lock(&mutex, K_FOREVER);
     }
-    ~SyncedWriteAccess() { k_mutex_unlock(&m_mutex); }
+    ~WriteLock() { k_mutex_unlock(&m_mutex); }
     const T &get_var() { return m_var; }
     T &get_ref() { return m_var; }
     void set_var(T val) { m_var = val; }
@@ -29,13 +29,13 @@ class SyncedWriteAccess {
     struct k_mutex &m_mutex;
 };
 template <class T>
-class SyncedReadAccess {
+class ReadLock {
   public:
-    SyncedReadAccess(const T &var, k_mutex &mutex) : m_var(var), m_mutex(mutex)
+    ReadLock(const T &var, k_mutex &mutex) : m_var(var), m_mutex(mutex)
     {
         k_mutex_lock(&mutex, K_FOREVER);
     }
-    ~SyncedReadAccess() { k_mutex_unlock(&m_mutex); }
+    ~ReadLock() { k_mutex_unlock(&m_mutex); }
     const T &get_var() { return m_var; }
 
   private:
@@ -52,10 +52,10 @@ class SyncedVar {
     SyncedVar(T &initial_val) : m_value(initial_val) { k_mutex_init(&m_mutex); }
     /// Waits for mutex to be unlocked and returns mutable access to variable.
     /// @note mutex will be unlocked on destruction
-    SyncedWriteAccess<T> write_access() { return SyncedWriteAccess<T>(m_value, m_mutex); }
+    WriteLock<T> get_write_lock() { return WriteLock<T>(m_value, m_mutex); }
     /// Waits for mutex to be unlocked and returns immutable access to variable.
     /// @note mutex will be unlocked on destruction
-    SyncedReadAccess<T> read_access() { return SyncedReadAccess<T>(m_value, m_mutex); }
+    ReadLock<T> get_read_lock() { return ReadLock<T>(m_value, m_mutex); }
 
   private:
     T m_value;

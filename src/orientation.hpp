@@ -43,14 +43,14 @@ class Orientation {
         // We should not need to scale the gyro measurements (zephyr claims gyro outputs should be
         // rad/s), so this is a "temporary" fix.
         remapped.gyro *= DEG_TO_RAD;
-        m_fusion_impl.update(remapped, m_quat.write_access().get_ref(), time_diff_ms);
+        m_fusion_impl.update(remapped, m_quat.get_write_lock().get_ref(), time_diff_ms);
     }
     /// Returns the current orientation in quaternion representation.
     /// @note Will block until quat mutex is available (locked by update)
-    Quaternion get_quaternion() { return m_quat.read_access().get_var(); }
+    Quaternion get_quaternion() { return m_quat.get_read_lock().get_var(); }
     /// Returns the current orientation in euler angle representation (degrees).
     /// @note Will block until quat mutex is available (locked by update)
-    EulerAngle get_euler_angle() { return quat_to_euler(m_quat.read_access().get_var()); }
+    EulerAngle get_euler_angle() { return quat_to_euler(m_quat.get_read_lock().get_var()); }
 
   protected:
     SyncedVar<Quaternion> m_quat;

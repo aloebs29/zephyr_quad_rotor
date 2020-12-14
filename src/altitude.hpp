@@ -26,7 +26,7 @@ class Altitude {
     {
         float new_alt =
             44330.0f * (1.0f - powf(sensor_value_to_double(&pressure) / 101.325f, 0.1902949f));
-        SyncedWriteAccess<float> write_access = m_altitude.write_access();
+        WriteLock<float> write_access = m_altitude.get_write_lock();
         // if this is the first update, initialize altitude member
         if (m_init) {
             write_access.set_var(new_alt);
@@ -39,7 +39,7 @@ class Altitude {
     }
     /// Returns the current altitude in meters
     /// @note Will block until alt mutex is available (locked by update)
-    float get_altitude() { return m_altitude.read_access().get_var(); }
+    float get_altitude() { return m_altitude.get_read_lock().get_var(); }
 
   private:
     bool m_init = true;

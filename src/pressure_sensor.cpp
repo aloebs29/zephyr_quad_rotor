@@ -74,7 +74,7 @@ void PressureSensor::entry_func(void *p1, void *p2, void *p3)
         int err = sensor_sample_fetch(m_dev);
         // store
         if (!err) {
-            SyncedWriteAccess<struct sensor_value> write_access = m_pressure.write_access();
+            WriteLock<struct sensor_value> write_access = m_pressure.get_write_lock();
             err = sensor_channel_get(m_dev, SENSOR_CHAN_PRESS, &write_access.get_ref());
         }
 
@@ -84,6 +84,6 @@ void PressureSensor::entry_func(void *p1, void *p2, void *p3)
     }
 }
 
-struct sensor_value PressureSensor::get_pressure() { return m_pressure.read_access().get_var(); }
+struct sensor_value PressureSensor::get_pressure() { return m_pressure.get_read_lock().get_var(); }
 
 } // namespace z_quad_rotor
