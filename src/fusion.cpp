@@ -13,7 +13,7 @@
 
 #include "linalg.h"
 
-namespace z_quad_rotor {
+using namespace z_quad_rotor;
 
 // constants
 constexpr float BETA = 0.041f;
@@ -184,5 +184,3 @@ void MadgwickFusion9::update(MargDataFloat marg_data, Quaternion &quat, uint32_t
     norm = 1.0f / linalg::length(quat);
     quat *= norm;
 }
-
-} // namespace z_quad_rotor

@@ -14,9 +14,9 @@ include_directories(app PRIVATE
 
 # Application sources
 target_sources(app PRIVATE 
+    src/dps310.cpp
     src/fusion.cpp
     src/fxas21002.cpp
     src/fxos8700.cpp
     src/main.cpp
-    src/pressure_sensor.cpp
 )

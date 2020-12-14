@@ -14,6 +14,7 @@
 #include <zephyr.h>
 
 #include "altitude.hpp"
+#include "dps310.hpp"
 #include "fxas21002.hpp"
 #include "fxos8700.hpp"
 #include "marg_sensor.hpp"
@@ -24,23 +25,23 @@ using namespace z_quad_rotor;
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
-// MARG sensor
+// constants
+static constexpr size_t DPS310_SAMPLING_STACK_SIZE = 1024;
+static constexpr int DPS310_SAMPLING_THREAD_PRIO = 10;
+
+// static objects
 static MargSensor marg_sensor;
-
-// Pressure sensor
 static PressureSensor pressure_sensor;
-static k_thread pressure_sensor_thread;
-K_THREAD_STACK_DEFINE(pressure_sensor_stack, PressureSensor::THREAD_STACK_SIZE);
-PRESSURE_DEFINE_THREAD_ENTRY_FUNC(pressure_sensor, pressure_entry_func);
 
-// Orientation filter
 static const RotationMatrix remap({1.0f, 0.0f, 0.0f}, // Identity matrix (TODO: create actual remap)
                                   {0.0f, 1.0f, 0.0f}, // -
                                   {0.0f, 0.0f, 1.0f});
 static Orientation<MadgwickFusion6> orientation(remap);
-
-// Altitude filter
 static Altitude altitude;
+
+// threads
+static k_thread dps310_sampling_thread;
+K_THREAD_STACK_DEFINE(dps310_sampling_stack, DPS310_SAMPLING_STACK_SIZE);
 
 // TODO: delete -- for testing
 // timer to initiate orientation updates
@@ -53,6 +54,20 @@ static struct sensor_value float_to_sensor_value(float f)
     return {(int)f, (int)((f - floorf(f)) * 1000000)};
 }
 
+// dps310 sampling thread
+void dps310_sampling_thread_func(void *p1, void *p2, void *p3)
+{
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+    ARG_UNUSED(p3);
+
+    for (;;) {
+        // sample at max rate (limited by conversion time)
+        dps310::read_pressure(&pressure_sensor);
+    }
+}
+
+// main thread
 void main(void)
 {
     // enable USB for shell backend
@@ -64,9 +79,19 @@ void main(void)
         err = fxas21002::setup(DT_LABEL(DT_INST(0, nxp_fxas21002)), &marg_sensor);
     }
     if (!err) {
-        err = pressure_sensor.init(DT_LABEL(DT_INST(0, infineon_dps310)), pressure_entry_func,
-                                   &pressure_sensor_thread, pressure_sensor_stack,
-                                   K_THREAD_STACK_SIZEOF(pressure_sensor_stack), 10);
+        err = dps310::setup(DT_LABEL(DT_INST(0, infineon_dps310)));
+    }
+
+    // startup threads
+    if (!err) {
+        k_tid_t dps310_sampling_tid = k_thread_create(
+            &dps310_sampling_thread, dps310_sampling_stack,
+            K_THREAD_STACK_SIZEOF(dps310_sampling_stack), dps310_sampling_thread_func, NULL, NULL,
+            NULL, DPS310_SAMPLING_THREAD_PRIO, 0, K_NO_WAIT);
+        err = k_thread_name_set(dps310_sampling_tid, "dps310 sampling");
+        if (err) {
+            LOG_ERR("Failed to set dps310 sampling thread name.");
+        }
     }
 
     uint32_t count = 0;

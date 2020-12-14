@@ -43,6 +43,7 @@ int fxas21002::setup(const char *dev_name, MargSensor *output_sink)
     int err = 0;
     // input validation
     if (dev_name == nullptr || output_sink == nullptr) {
+        LOG_ERR("FXAS21002 nullptr error at line: %d.", __LINE__);
         err = EINVAL;
     }
     // get device from name
