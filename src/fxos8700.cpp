@@ -1,7 +1,7 @@
 /**
- * @file		fxos8700.cpp
- * @author		Andrew Loebs
- * @brief		Source file of the fxos8700 module
+ * @file	fxos8700.cpp
+ * @author	Andrew Loebs
+ * @brief	Source file of the fxos8700 module
  *
  */
 

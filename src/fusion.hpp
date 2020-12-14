@@ -1,7 +1,7 @@
 /**
- * @file		fusion.hpp
- * @author		Andrew Loebs
- * @brief		Header file of the fusion module
+ * @file	fusion.hpp
+ * @author	Andrew Loebs
+ * @brief	Header file of the fusion module
  *
  * CRTP polymorphic classes for MARG/IMU sensor fusion algorithms
  *

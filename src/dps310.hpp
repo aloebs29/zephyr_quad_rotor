@@ -1,7 +1,7 @@
 /**
- * @file		dps310.hpp
- * @author		Andrew Loebs
- * @brief		Header file of the dps310 module
+ * @file	dps310.hpp
+ * @author	Andrew Loebs
+ * @brief	Header file of the dps310 module
  *
  * Thin wrapper around zephyr's dps310 driver
  *

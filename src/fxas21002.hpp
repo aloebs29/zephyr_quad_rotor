@@ -1,7 +1,7 @@
 /**
- * @file		fxas21002.hpp
- * @author		Andrew Loebs
- * @brief		Header file of the fxas21002 module
+ * @file	fxas21002.hpp
+ * @author	Andrew Loebs
+ * @brief	Header file of the fxas21002 module
  *
  * Thin wrapper around zephyr's fxas21002 driver
  *

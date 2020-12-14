@@ -1,7 +1,7 @@
 /**
- * @file		orientation_defs.hpp
- * @author		Andrew Loebs
- * @brief		Header-only orientation definitions
+ * @file	orientation_defs.hpp
+ * @author	Andrew Loebs
+ * @brief	Header-only orientation definitions
  *
  * Contains type aliases and constants for representing & manipulating orientations (this was needed
  * to prevent a cyclic dependency between fusion & orientation modules).

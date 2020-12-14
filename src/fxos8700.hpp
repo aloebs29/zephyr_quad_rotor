@@ -1,7 +1,7 @@
 /**
- * @file		fxos8700.hpp
- * @author		Andrew Loebs
- * @brief		Header file of the fxos8700 module
+ * @file	fxos8700.hpp
+ * @author	Andrew Loebs
+ * @brief	Header file of the fxos8700 module
  *
  * Thin wrapper around zephyr's fxos8700 driver
  *

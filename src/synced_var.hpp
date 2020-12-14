@@ -1,6 +1,6 @@
 /**
  * @file		synced_var.hpp
- * @author		Andrew Loebs
+ * @author	Andrew Loebs
  * @brief		Header-only template for mutex-protected access to a var
  *
  */

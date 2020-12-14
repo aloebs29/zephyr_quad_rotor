@@ -1,7 +1,7 @@
 /**
- * @file		fxas21002.cpp
- * @author		Andrew Loebs
- * @brief		Source file of the fxas21002 module
+ * @file	fxas21002.cpp
+ * @author	Andrew Loebs
+ * @brief	Source file of the fxas21002 module
  *
  */
 

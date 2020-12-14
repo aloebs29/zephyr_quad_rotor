@@ -13,7 +13,7 @@
 
 #include <drivers/sensor.h>
 
-#include "synced_var.h"
+#include "synced_var.hpp"
 
 namespace z_quad_rotor {
 

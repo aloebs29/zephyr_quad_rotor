@@ -1,6 +1,6 @@
 /**
  * @file		orientation.hpp
- * @author		Andrew Loebs
+ * @author	Andrew Loebs
  * @brief		Header-only orientation module
  *
  * Derives orientation from raw MARG sensor values using selected sensor fusion algorithm.
@@ -20,7 +20,7 @@
 #include "fusion.hpp"
 #include "marg_sensor.hpp"
 #include "orientation_defs.hpp"
-#include "synced_var.h"
+#include "synced_var.hpp"
 
 namespace z_quad_rotor {
 

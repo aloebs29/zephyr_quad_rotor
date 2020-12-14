@@ -1,7 +1,7 @@
 /**
- * @file		main.cpp
- * @author		Andrew Loebs
- * @brief		Main application
+ * @file	main.cpp
+ * @author	Andrew Loebs
+ * @brief	Main application
  *
  */
 

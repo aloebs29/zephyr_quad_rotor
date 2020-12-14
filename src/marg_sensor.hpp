@@ -1,6 +1,6 @@
 /**
  * @file		marg_sensor.hpp
- * @author		Andrew Loebs
+ * @author	Andrew Loebs
  * @brief		Header-only MARG sensor module
  *
  * Defines MARG data types, sensor class for handling read/write access to MARG data.
@@ -15,7 +15,7 @@
 
 #include "linalg.h"
 
-#include "synced_var.h"
+#include "synced_var.hpp"
 
 namespace z_quad_rotor {
 

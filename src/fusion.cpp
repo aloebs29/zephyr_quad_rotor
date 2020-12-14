@@ -1,7 +1,7 @@
 /**
- * @file		fusion.cpp
- * @author		Andrew Loebs
- * @brief		Source file of the fusion module
+ * @file	fusion.cpp
+ * @author	Andrew Loebs
+ * @brief	Source file of the fusion module
  *
  *
  */

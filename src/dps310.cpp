@@ -1,7 +1,7 @@
 /**
- * @file		dps310.cpp
- * @author		Andrew Loebs
- * @brief		Source file of the dps310 module
+ * @file	dps310.cpp
+ * @author	Andrew Loebs
+ * @brief	Source file of the dps310 module
  *
  */
 

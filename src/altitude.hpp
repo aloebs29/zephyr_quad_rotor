@@ -1,6 +1,6 @@
 /**
  * @file		altitude.hpp
- * @author		Andrew Loebs
+ * @author	Andrew Loebs
  * @brief		Header-only altitude calculation module
  *
  */
@@ -13,7 +13,7 @@
 #include <drivers/sensor.h>
 #include <zephyr.h>
 
-#include "synced_var.h"
+#include "synced_var.hpp"
 
 namespace z_quad_rotor {
 
