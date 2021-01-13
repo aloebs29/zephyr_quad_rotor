@@ -9,6 +9,8 @@
 #include <cstdlib>
 
 #include <device.h>
+#include <drivers/adc.h>   // TODO: Delete -- for testing
+#include <hal/nrf_saadc.h> // TODO: Delete -- for testing
 #include <logging/log.h>
 #include <usb/usb_device.h>
 #include <zephyr.h>
@@ -67,11 +69,40 @@ void dps310_sampling_thread_func(void *p1, void *p2, void *p3)
     }
 }
 
+static const struct adc_channel_cfg ccfg = {
+    .gain = ADC_GAIN_2,
+    .reference = ADC_REF_INTERNAL,
+    .acquisition_time = ADC_ACQ_TIME_DEFAULT,
+    .channel_id = 0,
+    .input_positive = NRF_SAADC_INPUT_AIN5,
+};
+static int16_t raw;
+static const struct adc_sequence seq = {
+    .channels = BIT(0),
+    .buffer = &raw,
+    .buffer_size = sizeof(raw),
+    .resolution = 14,
+    .oversampling = 4,
+    .calibrate = true,
+};
+
 // main thread
 void main(void)
 {
     // enable USB for shell backend
     usb_enable(NULL);
+
+    // setup adc
+    const struct device *adc = device_get_binding(DT_LABEL(DT_INST(0, nordic_nrf_saadc)));
+    if (!adc) {
+        LOG_ERR("ADC binding failed.");
+    }
+    else {
+        int temp = adc_channel_setup(adc, &ccfg);
+        if (temp) {
+            LOG_ERR("ADC channel setup error: %d", temp);
+        }
+    }
 
     // setup sensors
     int err = fxos8700::setup(DT_LABEL(DT_INST(0, nxp_fxos8700)), &marg_sensor);
@@ -122,16 +153,34 @@ void main(void)
             //         abs(marg_data.magn[0].val2), marg_data.magn[1].val1,
             //         abs(marg_data.magn[1].val2), marg_data.magn[2].val1,
             //         abs(marg_data.magn[2].val2));
-            EulerAngle euler_angle = orientation.get_euler_angle() * RAD_TO_DEG;
-            struct sensor_value roll = float_to_sensor_value(euler_angle.x);
-            struct sensor_value pitch = float_to_sensor_value(euler_angle.y);
-            struct sensor_value yaw = float_to_sensor_value(euler_angle.z);
-            LOG_INF("Roll:%3d.%06d Pitch:%3d.%06d Yaw:%3d.%06d", roll.val1, abs(roll.val2),
-                    pitch.val1, abs(pitch.val2), yaw.val1, abs(yaw.val2));
+            // EulerAngle euler_angle = orientation.get_euler_angle() * RAD_TO_DEG;
+            // struct sensor_value roll = float_to_sensor_value(euler_angle.x);
+            // struct sensor_value pitch = float_to_sensor_value(euler_angle.y);
+            // struct sensor_value yaw = float_to_sensor_value(euler_angle.z);
+            // LOG_INF("Roll:%3d.%06d Pitch:%3d.%06d Yaw:%3d.%06d", roll.val1, abs(roll.val2),
+            //         pitch.val1, abs(pitch.val2), yaw.val1, abs(yaw.val2));
 
-            float height_f = altitude.get_altitude();
-            struct sensor_value height = float_to_sensor_value(height_f);
-            LOG_INF("Altitude:%3d.%06d", height.val1, height.val2);
+            // float height_f = altitude.get_altitude();
+            // struct sensor_value height = float_to_sensor_value(height_f);
+            // LOG_INF("Altitude:%3d.%06d", height.val1, height.val2);
+
+            if (adc) {
+                err = adc_read(adc, &seq);
+                if (err) {
+                    LOG_ERR("Error reading ADC: %d", err);
+                }
+                else {
+                    int32_t val = raw;
+                    err = adc_raw_to_millivolts(adc_ref_internal(adc), ccfg.gain, seq.resolution,
+                                                &val);
+                    if (err) {
+                        LOG_ERR("Error converting ADC measurement: %d", err);
+                    }
+                    else {
+                        LOG_INF("V Batt: %d", val);
+                    }
+                }
+            }
 
             count = 0; // reset
         }
